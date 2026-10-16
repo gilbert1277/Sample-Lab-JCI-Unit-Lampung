@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PT Japfa Comfeed Indonesia Tbk - Laboratory Executive & LIS Dashboard</title>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<!-- Flatpickr -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+<style>
+  :root {
+    --bg: #040812;
+    --panel: #0b1329;
+    --panel-border: #1e2942;
+    --primary: #3b82f6;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --purple: #8b5cf6;
+    --text: #f8fafc;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+    padding: 10px; min-height: 100vh; display: flex; flex-direction: column; gap: 10px;
+  }
+  
+  /* Header - Responsive Flex */
+  .header {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px; padding: 10px 14px; flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo-img { height: 34px; background: #fff; padding: 3px 6px; border-radius: 4px; object-fit: contain; }
+  .title-block h1 { margin: 0; font-size: 15px; font-weight: 800; letter-spacing: 0.5px; }
+  .title-block p { margin: 2px 0 0; color: var(--muted); font-size: 10.5px; }
+  
+  .header-metrics { display: flex; gap: 15px; align-items: center; border-left: 1px solid var(--panel-border); border-right: 1px solid var(--panel-border); padding: 0 15px; }
+  .monthly-queue { text-align: center; }
+  .monthly-queue .lbl { font-size: 9.5px; color: var(--muted); text-transform: uppercase; font-weight: bold; }
+  .monthly-queue .val { font-size: 16px; font-weight: 900; color: var(--warning); line-height: 1.1; }
+
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .datepicker {
+    display: flex; align-items: center; gap: 6px; background: #111c38;
+    border: 1px solid var(--panel-border); border-radius: 6px; padding: 4px 8px; cursor: pointer;
+  }
+  .datepicker input { background: transparent; border: none; color: var(--text); font-size: 11px; cursor: pointer; outline: none; width: 80px; }
+  .clock { text-align: right; }
+  .clock .date { font-size: 10px; color: var(--muted); }
+  .clock .time { font-size: 14px; font-weight: 700; color: var(--success); }
+
+  /* 4 Workflow Stages Grid - Responsive auto-fit */
+  .stages-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; flex-shrink: 0; }
+  .stage-card {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px;
+    display: flex; flex-direction: column; height: 185px; position: relative; overflow: hidden; padding: 8px 10px;
+  }
+  .stage-head {
+    font-size: 11px; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid var(--panel-border); padding-bottom: 4px;
+    display: flex; justify-content: space-between; align-items: center; color: #e2e8f0;
+  }
+  .stage-head .num-badge {
+    background: var(--primary); color: #fff; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; border-radius: 3px; font-size: 10px;
+  }
+  .stage-body { flex: 1; display: flex; flex-direction: column; gap: 3px; font-size: 10px; margin-top: 4px; overflow-y: auto; scrollbar-width: thin; }
+  .flow-row { display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.02); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.04); }
+  .flow-row .lbl { color: var(--muted); }
+  .flow-row .val { font-weight: bold; color: var(--text); }
+  .source-sub { font-size: 9.5px; color: var(--muted); font-style: italic; }
+
+  /* Chart inside Stage 1 */
+  .mini-chart { flex: 1; position: relative; min-height: 65px; margin-top: 2px; }
+
+  /* Main Detailed Table (LIS Parameter Selection View) */
+  .table-wrap {
+    background: var(--panel); border: 1px solid var(--panel-border); border-radius: 8px; padding: 10px;
+    height: 380px; display: flex; flex-direction: column;
+  }
+  .table-header-bar {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; flex-shrink: 0; font-size: 11.5px; font-weight: 700;
+  }
+  
+  .scroll-controls {
+    display: flex; align-items: center; gap: 8px; font-size: 10.5px; color: var(--muted); font-weight: normal;
+  }
+  .scroll-toggle-btn {
+    background: #1e2942; border: 1px solid #3b82f6; color: #fff; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 10px; font-weight: bold;
+  }
+  .scroll-toggle-btn.active { background: var(--primary); }
+
+  .table-scroll { flex: 1; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--primary) #111c38; -webkit-overflow-scrolling: touch; }
+  table.lis-table { width: 100%; border-collapse: collapse; font-size: 10px; white-space: nowrap; }
+  table.lis-table thead td { background: #111c38; color: var(--muted); font-weight: 700; padding: 6px 8px; border-bottom: 2px solid var(--panel-border); position: sticky; top: 0; z-index: 5; text-align: center; }
+  table.lis-table thead td:first-child { position: sticky; left: 0; z-index: 6; background: #111c38; border-right: 2px solid var(--panel-border); }
+  
+  table.lis-table tbody td { padding: 6px 8px; border-bottom: 1px solid #131f38; color: #e2e8f0; text-align: center; }
+  table.lis-table tbody td:first-child { position: sticky; left: 0; background: var(--panel); border-right: 2px solid var(--panel-border); font-weight: bold; z-index: 4; }
+  table.lis-table tbody tr:hover td { background: #13203f; }
+
+  .val-y { color: #34d399; font-weight: 800; }
+  .val-n { color: #475569; }
+
+  .footer { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; color: var(--muted); font-size: 10px; flex-shrink: 0; align-items: center; }
+  .live-dot { display: inline-block; width: 6px; height: 6px; background-color: var(--success); border-radius: 50%; margin-right: 4px; box-shadow: 0 0 5px var(--success); }
+
+  /* Mobile Responsive Media Queries */
+  @media(max-width: 768px) {
+    body { height: auto; overflow: auto; }
+    .header-metrics { display: none; }
+    .table-wrap { height: 420px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <img src="logo-japfaaa.png" alt="Logo" class="logo-img" onerror="this.style.display='none'">
+    <div class="title-block">
+      <h1>PT JAPFA COMFEED INDONESIA Tbk - UNIT LAMPUNG</h1>
+      <p>Laboratory Management & LIS Sample Reception Dashboard</p>
+    </div>
+  </div>
+
+  <div class="header-metrics">
+    <div class="monthly-queue">
+      <div class="lbl">Monthly Sample Queue</div>
+      <div class="val" id="monthlyQueue">4,250 Samples</div>
+    </div>
+  </div>
+
+  <div class="header-right">
+    <div class="datepicker" id="datePickerWrap">
+      <span>📅 Date:</span>
+      <input type="text" id="filterDate" readonly>
+    </div>
+    <div class="clock">
+      <div class="date" id="dateNow">--</div>
+      <div class="time" id="timeNow">--:--:--</div>
+    </div>
+  </div>
+</div>
+
+<!-- 4 Workflow Stages Grid -->
+<div class="stages-grid">
+  <!-- Stage 1 -->
+  <div class="stage-card" style="border-top: 3px solid var(--primary);">
+    <div class="stage-head">
+      <span><div class="num-badge" style="display:inline-block;">1</div> Incoming Sample</span>
+      <span style="font-size:9.5px; color:var(--primary);">All Analysis Items</span>
+    </div>
+    <div class="stage-body">
+      <div class="source-sub">➔ Reception from QC (eLab)</div>
+      <div class="flow-row"><span class="lbl">Total Items</span><span class="val" id="stage1Total">120</span></div>
+      <div class="source-sub">➔ Parameters (Moisture, Protein, Ca, Na, etc.)</div>
+      <div class="mini-chart"><canvas id="stage1Chart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Stage 2 -->
+  <div class="stage-card" style="border-top: 3px solid var(--warning);">
+    <div class="stage-head">
+      <span><div class="num-badge" style="display:inline-block; background:var(--warning);">2</div> Internal Analysis Stage</span>
+    </div>
+    <div class="stage-body">
+      <div class="flow-row" style="background:rgba(245,158,11,0.1); border-color:var(--warning);">
+        <span class="lbl">Duration (Rcv ➔ Check)</span><span class="val" id="stage2Dur" style="color:var(--warning);">28 mins</span>
+      </div>
+      <div style="font-size:9.5px; font-weight:bold; color:var(--warning); margin-top:2px;">Normal Flow:</div>
+      <div class="flow-row"><span class="lbl">➔ Check</span><span class="val" id="stage2Check">85</span></div>
+      <div class="flow-row"><span class="lbl">➔ Approved ➔ eLab</span><span class="val" id="stage2App">78</span></div>
+      <div style="font-size:9.5px; font-weight:bold; color:var(--danger); margin-top:2px;">Re-Analysis Flow:</div>
+      <div class="flow-row"><span class="lbl">➔ To Do List ➔ Check ➔ App</span><span class="val" id="stage2Re" style="color:var(--danger);">12</span></div>
+    </div>
+  </div>
+
+  <!-- Stage 3 -->
+  <div class="stage-card" style="border-top: 3px solid var(--purple);">
+    <div class="stage-head">
+      <span><div class="num-badge" style="display:inline-block; background:var(--purple);">3</div> External Analysis Stage</span>
+    </div>
+    <div class="stage-body">
+      <div class="source-sub">Outsourced Lab Tracking</div>
+      <div class="flow-row"><span class="lbl">1. Create ➔ Send</span><span class="val" style="color:var(--purple);">15 ✓</span></div>
+      <div class="flow-row"><span class="lbl">2. Receive & Process Analysis</span><span class="val" style="color:var(--purple);">14 ✓</span></div>
+      <div class="flow-row"><span class="lbl">3. Finish</span><span class="val" style="color:var(--success);">12 ✓</span></div>
+    </div>
+  </div>
+
+  <!-- Stage 4 -->
+  <div class="stage-card" style="border-top: 3px solid var(--success);">
+    <div class="stage-head">
+      <span><div class="num-badge" style="display:inline-block; background:var(--success);">4</div> Wet Lab Complete</span>
+    </div>
+    <div class="stage-body">
+      <div class="flow-row" style="background:rgba(16,185,129,0.1); border-color:var(--success);">
+        <span class="lbl">Total Completed</span><span class="val" id="stage4Comp" style="color:var(--success); font-size:12px;">102</span>
+      </div>
+      <div style="font-size:9.5px; font-weight:bold; color:var(--success); margin-top:4px;">Filling Sample Progress:</div>
+      <div style="background:#111c38; height:12px; border-radius:4px; overflow:hidden; position:relative; border:1px solid rgba(255,255,255,0.1);">
+        <div id="fillingBar" style="background:var(--success); height:100%; width:85%;"></div>
+        <div id="fillingText" style="position:absolute; width:100%; text-align:center; top:0; font-size:8.5px; font-weight:bold; line-height:12px; color:#fff;">85% Filled</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIS Detailed Table -->
+<div class="table-wrap">
+  <div class="table-header-bar">
+    <span>📋 Sample Reception LIS Data & Parameter Status (Y / N)</span>
+    <div class="scroll-controls">
+      <span style="font-size:10.5px; color:var(--muted);">Swipe / Scroll Horizontal & Vertical ➔</span>
+      <button class="scroll-toggle-btn active" id="scrollToggleBtn" onclick="toggleAutoScroll()">Auto-Scroll: ON</button>
+    </div>
+  </div>
+  <div class="table-scroll" id="tableScrollContainer">
+    <table class="lis-table">
+      <thead>
+        <tr>
+          <td>ID</td>
+          <td>Date Created</td>
+          <td>Source</td>
+          <td>Sender</td>
+          <td>Recipient</td>
+          <td>ILOT</td>
+          <td>Material</td>
+          <td>G/UG</td>
+          <!-- Individual Parameters -->
+          <td>Moisture</td><td>Fat</td><td>Protein</td><td>Ash</td><td>C. Fiber</td>
+          <td>aNDF-ADF</td><td>Starch</td><td>Xan</td><td>Proma</td><td>P</td><td>Cl</td><td>HCl Test</td>
+          <td>Ca</td><td>Na</td><td>K</td><td>Co</td><td>Cu</td><td>Fe</td><td>Mn</td><td>Mg</td>
+          <td>Zn</td><td>Cd</td><td>Cr</td><td>Pb</td><td>POV</td><td>FFA</td><td>IV</td><td>PDI</td>
+          <td>PSI</td><td>Urease</td><td>AFL</td><td>T2</td><td>DON</td><td>Q8</td><td>TVBN</td><td>NPN</td>
+          <td>MBM</td><td>GE</td>
+        </tr>
+      </thead>
+      <tbody id="lisTableBody">
+        <!-- Injected via JS -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <span style="display:flex; align-items:center;">
+    <span class="live-dot"></span>
+    <span style="color:var(--success); font-weight:700;">LIVE LABORATORY MANAGEMENT SYSTEM</span>
+    &nbsp;&nbsp;|&nbsp;&nbsp; PT Japfa Comfeed Indonesia Tbk Unit Lampung
+  </span>
+  <span>Fully Responsive Mobile & Desktop View</span>
+</div>
+
+<script>
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+flatpickr("#filterDate", {
+  defaultDate: "today", maxDate: "today", dateFormat: "Y-m-d"
+});
+document.getElementById('datePickerWrap').addEventListener('click', () => document.getElementById('filterDate')._flatpickr.open());
+
+function tickClock(){
+  const now = new Date();
+  document.getElementById('dateNow').textContent = `${String(now.getDate()).padStart(2,'0')} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('timeNow').textContent = now.toLocaleTimeString('en-US',{hour12:false});
+}
+setInterval(tickClock, 1000); tickClock();
+
+const paramKeys = [
+  "Moisture", "Fat", "Protein", "Ash", "C_Fiber", "aNDF_ADF", "Starch", "Xan", "Proma", "P", "Cl", "HCl_Test",
+  "Ca", "Na", "K", "Co", "Cu", "Fe", "Mn", "Mg", "Zn", "Cd", "Cr", "Pb",
+  "POV", "FFA", "IV", "PDI", "PSI", "Urease", "AFL", "T2", "DON", "Q8", "TVBN", "NPN",
+  "MBM", "GE"
+];
+
+function loadListData(){
+  let html = '';
+  for(let i=1; i<=50; i++){
+    let id = 70986 + i;
+    let ilot = "400024310" + (42 + i);
+    let material = i % 2 === 0 ? "16026190013..." : "16026190088...";
+    let gug = i % 2 === 0 ? "G 0.75 mm" : "G 0.50 mm";
+    let d = new Date(2026, 9, 13, 9, 45 + (i%15));
+    let dateStr = `${String(d.getDate()).padStart(2,'0')}/10/2026 ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+
+    let cells = paramKeys.map(k => {
+      let isY = false;
+      if (["Ca", "Na", "Moisture", "Protein"].includes(k)) {
+        isY = Math.random() > 0.3;
+      } else {
+        isY = Math.random() > 0.85;
+      }
+      let val = isY ? "Y" : "N";
+      let cls = isY ? "val-y" : "val-n";
+      return `<td class="${cls}">${val}</td>`;
+    }).join('');
+
+    html += `<tr>
+      <td style="font-weight:700; color:#60a5fa;">${id}</td>
+      <td>${dateStr}</td>
+      <td>701S</td>
+      <td>701S</td>
+      <td>701S</td>
+      <td>${ilot}</td>
+      <td>${material}</td>
+      <td>${gug}</td>
+      ${cells}
+    </tr>`;
+  }
+  document.getElementById('lisTableBody').innerHTML = html;
+}
+
+const ctx = document.getElementById('stage1Chart').getContext('2d');
+new Chart(ctx, {
+  type: 'bar',
+  data: {
+    labels: ['Moisture', 'Protein', 'Ca', 'Na', 'Fat', 'Ash'],
+    datasets: [{
+      data: [60, 52, 45, 38, 42, 40],
+      backgroundColor: '#3b82f6',
+      borderRadius: 3,
+      barThickness: 12
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { enabled: true }
+    },
+    scales: {
+      x: { 
+        ticks: { 
+          color: '#f8fafc', 
+          font: { size: 9, weight: 'bold' },
+          callback: function(val, index) {
+            const label = this.getLabelForValue(index);
+            const value = this.chart.data.datasets[0].data[index];
+            return [label, value]; // Menampilkan nama di atas, angka di bawah
+          }
+        }, 
+        grid: { display: false } 
+      },
+      y: { display: false, max: 70 }
+    }
+  }
+});
+
+let isAutoScrolling = true;
+let scrollTimer = null;
+const container = document.getElementById('tableScrollContainer');
+
+function startAutoScroll() {
+  if(scrollTimer) clearInterval(scrollTimer);
+  scrollTimer = setInterval(() => {
+    if (!isAutoScrolling) return;
+    const maxScroll = container.scrollHeight - container.clientHeight;
+    if (maxScroll <= 0) return;
+    
+    if (container.scrollTop >= maxScroll - 1) {
+      container.scrollTop = 0;
+    } else {
+      container.scrollTop += 1;
+    }
+  }, 45);
+}
+
+let manualPauseTimer = null;
+container.onwheel = container.ontouchstart = container.onmousedown = () => {
+  if (!isAutoScrolling) return;
+  isAutoScrolling = false;
+  document.getElementById('scrollToggleBtn').textContent = "Auto-Scroll: PAUSED";
+  document.getElementById('scrollToggleBtn').classList.remove('active');
+  
+  if (manualPauseTimer) clearTimeout(manualPauseTimer);
+  manualPauseTimer = setTimeout(() => {
+    isAutoScrolling = true;
+    document.getElementById('scrollToggleBtn').textContent = "Auto-Scroll: ON";
+    document.getElementById('scrollToggleBtn').classList.add('active');
+  }, 5000);
+};
+
+function toggleAutoScroll() {
+  isAutoScrolling = !isAutoScrolling;
+  const btn = document.getElementById('scrollToggleBtn');
+  if (isAutoScrolling) {
+    btn.textContent = "Auto-Scroll: ON";
+    btn.classList.add('active');
+  } else {
+    btn.textContent = "Auto-Scroll: OFF";
+    btn.classList.remove('active');
+  }
+}
+
+loadListData();
+startAutoScroll();
+</script>
+</body>
+</html>
